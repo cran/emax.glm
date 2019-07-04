@@ -1,0 +1,111 @@
+---
+title: "The EM GLM algorithm - Proof of predicted values"
+author: "Robert M. Cook"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{The EM GLM algorithm - Proof of predicted values}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8,
+  fig.height = 8*0.62
+)
+```
+
+The EM algorithm treats the observed data as arising  from one of several competing random processes.  Each process has some underpinning probability distribution:
+
+$$P(y_i | x_i, B_i)$$
+
+
+and likelihood of  all observations:
+
+$$ L(Y | X, B_1 ... B_k) = \prod_{i=1}^N \prod_{j=1}^k P(y_i | x_i, B_j )^{I(Z_i = j)}  $$
+
+where each observation  has a hidden variable, $Z_i$ (indicating which of the competing random processes gives rise to the observation) and the function $I(Z_i = j)$ is an indicator function (i.e. it equals 1 when *true* and 0 otherwise). If $Z_i$ were known the observations could be grouped and $k$ models fit so as to maximize the log-likelihood:
+
+$$ l(Y | X, B_1 ... B_k) = \sum_{i=1}^N \sum_{j=1}^k I(Z_i = j)  \ln(P(y_i | x_i, B_j ))  $$
+
+Given that $Z_i$ is not known, we instead substitute $Z_i$ for a probability $T_{j}$. $T_{j}$ is the probability of a given observation arising from one of the $k$ competing models (assuming the proposed parameters are true) normalized across all models.    Making this substitution, the likelihood of the $i^{th}$ observation, $l_i$ is:
+
+$$ l_i(y | x, B_1 ... B_k, T_1 ... T_k) =  \sum_{j=1}^k T_{j}  \ln(P(y | x, B_j)) $$
+
+with $\sum_{j=1}^k T_{i,j} = 1$.   For proposed parameters, $B_1 ... B_k$, $T_j$ has values:
+
+$$ T_{j} = \frac{P(y | x, B_j)}{\sum_{j=1}^k P(y | x, B_k) } $$
+
+Using this replacement of $I(Z_i = j)$ with  $T_{j}$ each observation becomes a mixed distribution:
+
+$$P(y| x, B_1 .. B_K, T_1 ... T_k) = \alpha \prod_{j=1}^k P(y | x, B_j) ^ {T_{j}}$$
+
+with $\alpha$ being some additional normalization term.
+
+## Binomial example:
+
+For the Binomial distribution the mixed probability mass function is:
+
+$$ P(y | p_1 ... p_k, T_1 ..T_k) = f_{norm.}(n, p1 ... p_k) \prod_{i=1}^k \left({n \choose y} p_i^y(1-p)^{n-y}\right)^{T_i} $$
+
+where $f_{norm.}$ is a normalization coefficient to be found.
+
+Re-arranging the powers we can re-write the equation as:
+
+$$ P(y | p_1 ... p_k, T_1 ..T_k) = f_{norm.}(n, p_1.. p_n, T_1 ... T_n) {n \choose y}  \left( \prod_{i=1}^k p_i^{T_i} \right)^y \left(\prod_{i=1}^k (1-p_i)^{T_i}\right)^{n - y} $$
+
+Which suddenly resembles the standard binomial process.  Using the binomial theorem we know that:
+
+$$\sum_{y=0}^n {n \choose y}  \left( \prod_{i=1}^k p_i^{T_i} \right)^y \left(\prod_{i=1}^k (1-p_i)^{T_i}\right)^{n - y} = (\prod_{i=1}^k p_i^{T_i} + \prod_{i=1}^k (1-p_i)^{T_i})^n  $$
+
+and hence we have the  normalization term:
+
+$$f_{norm.}(n, p_1.. p_n, T_1 ... T_n) = (\prod_{i=1}^k p_i^{T_i} + \prod_{i=1}^k (1-p_i)^{T_i})^{-n}$$
+
+And our original expression for $P(y)$ can be rewritten as:
+
+$$ P(y | p_1 ... p_k, T_1 ..T_k) = {n \choose y}   \frac{\left( \prod_{i=1}^k p_i^{T_i} \right)^y \left(\prod_{i=1}^k (1-p_i)^{T_i}\right)^{n - y}}{(\prod_{i=1}^k p_i^{T_i} + \prod_{i=1}^k (1-p_i)^{T_i})^{n}}$$
+
+From here we can re-write in terms of $p_{pooled}$ where:
+
+$$p_{pooled} = \frac{\prod_{i=1}^k p_i^{T_i} }{\prod_{i=1}^k p_i^{T_i} + \prod_{i=1}^k (1-p_i)^{T_i}}  $$ 
+
+$$(1 - p_{pooled}) = \frac{\prod_{i=1}^k (1 - p_i)^{T_i} }{\prod_{i=1}^k p_i^{T_i} + \prod_{i=1}^k (1-p_i)^{T_i}}$$ 
+
+$$ P(y| p_{pooled}) = {n \choose y} p_{pooled}^y (1- p_{pooled})^{n - y} $$
+
+now - if we use the canonical link function (such that $\theta = xB$)  we have:
+
+$$\theta_{pooled} = log\left(\frac{p_{pooled}}{1 - p_{pooled}}\right) = log\left(\frac{\prod_{i=1}^k p_i^{T_i} }{\prod_{i=1}^k ( 1- p_i)^{T_i} }\right) = log\left( \prod_{i=1}^k \left( \frac{p_i}{1-p_i}\right)^{T_i} \right) = \sum_{i=1}^k T_i \theta_i = \sum_{i=1}^k T_i x B_i  $$ 
+
+From here the standard rules of GLMs can be applied, with $\mu = b'(\theta_{pooled}).$
+
+## Poisson derivation
+
+For the Poisson distribution the mixed probability mass function is:
+
+$$ P(y |\lambda_1 ... \lambda_k, T_1 ..T_k) = f_{norm.}(n, \lambda_1 ... \lambda_k) \prod_{i=1}^k \left(\frac{\lambda_i^y}{y!}\right)^{T_i} $$
+
+where $f$ is again the normalization function.  Following the same approach as above, we can re-arrange the powers:
+
+$$ P(y |\lambda_1 ... \lambda_k, T_1 ..T_k) = f_{norm.}(n,\lambda_1 ... \lambda_k)  \frac{\left( \prod_{i=1}^k \lambda_i^{T_i} \right)^y }{y!} $$
+
+which follows the same form as the typical Poisson dist. with a value of:
+
+$$ \lambda_{pooled} = \prod_{i=1}^k \lambda_i^{T_i}  $$
+
+$$ P(y | \lambda_1 ... \lambda_k, T_1 ..T_k) = \frac{e^{-\lambda_{pooled}} \lambda_{pooled}}{y!} $$
+
+Now, we can again apply the canonical link function, $\theta_i = log(\lambda_i)$ and $\lambda_i = e^{\theta_i}$ with $\theta_i = xB_i$:
+
+$$\theta_{pooled} = \log(\lambda_{pooled}) = \log \left(\prod_{i=1}^k \lambda_i^{T_i} \right) = \sum_{i=1}^k T_i \log(\lambda_i) =\sum_{i=1}^k T_i x B_i  $$
+
+## Discussion
+
+By using the canonical link both the Poisson and Binomial distribution result in the same link between $\theta_{pooled}$ and the EM_GLM parameters $B_i$.   
+
+With this proof, we can then assume that the standard GLM results from $b(\theta)$ will hold, simplifying prediction and residuals.
+

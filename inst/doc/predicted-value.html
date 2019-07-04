@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Robert M. Cook" />
+
+<meta name="date" content="2019-07-01" />
+
+<title>The EM GLM algorithm - Proof of predicted values</title>
+
+
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#header {
+text-align: center;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">The EM GLM algorithm - Proof of predicted values</h1>
+<h4 class="author">Robert M. Cook</h4>
+<h4 class="date">2019-07-01</h4>
+
+
+
+<p>The EM algorithm treats the observed data as arising from one of several competing random processes. Each process has some underpinning probability distribution:</p>
+<p><span class="math display">\[P(y_i | x_i, B_i)\]</span></p>
+<p>and likelihood of all observations:</p>
+<p><span class="math display">\[ L(Y | X, B_1 ... B_k) = \prod_{i=1}^N \prod_{j=1}^k P(y_i | x_i, B_j )^{I(Z_i = j)}  \]</span></p>
+<p>where each observation has a hidden variable, <span class="math inline">\(Z_i\)</span> (indicating which of the competing random processes gives rise to the observation) and the function <span class="math inline">\(I(Z_i = j)\)</span> is an indicator function (i.e. it equals 1 when <em>true</em> and 0 otherwise). If <span class="math inline">\(Z_i\)</span> were known the observations could be grouped and <span class="math inline">\(k\)</span> models fit so as to maximize the log-likelihood:</p>
+<p><span class="math display">\[ l(Y | X, B_1 ... B_k) = \sum_{i=1}^N \sum_{j=1}^k I(Z_i = j)  \ln(P(y_i | x_i, B_j ))  \]</span></p>
+<p>Given that <span class="math inline">\(Z_i\)</span> is not known, we instead substitute <span class="math inline">\(Z_i\)</span> for a probability <span class="math inline">\(T_{j}\)</span>. <span class="math inline">\(T_{j}\)</span> is the probability of a given observation arising from one of the <span class="math inline">\(k\)</span> competing models (assuming the proposed parameters are true) normalized across all models. Making this substitution, the likelihood of the <span class="math inline">\(i^{th}\)</span> observation, <span class="math inline">\(l_i\)</span> is:</p>
+<p><span class="math display">\[ l_i(y | x, B_1 ... B_k, T_1 ... T_k) =  \sum_{j=1}^k T_{j}  \ln(P(y | x, B_j)) \]</span></p>
+<p>with <span class="math inline">\(\sum_{j=1}^k T_{i,j} = 1\)</span>. For proposed parameters, <span class="math inline">\(B_1 ... B_k\)</span>, <span class="math inline">\(T_j\)</span> has values:</p>
+<p><span class="math display">\[ T_{j} = \frac{P(y | x, B_j)}{\sum_{j=1}^k P(y | x, B_k) } \]</span></p>
+<p>Using this replacement of <span class="math inline">\(I(Z_i = j)\)</span> with <span class="math inline">\(T_{j}\)</span> each observation becomes a mixed distribution:</p>
+<p><span class="math display">\[P(y| x, B_1 .. B_K, T_1 ... T_k) = \alpha \prod_{j=1}^k P(y | x, B_j) ^ {T_{j}}\]</span></p>
+<p>with <span class="math inline">\(\alpha\)</span> being some additional normalization term.</p>
+<div id="binomial-example" class="section level2">
+<h2>Binomial example:</h2>
+<p>For the Binomial distribution the mixed probability mass function is:</p>
+<p><span class="math display">\[ P(y | p_1 ... p_k, T_1 ..T_k) = f_{norm.}(n, p1 ... p_k) \prod_{i=1}^k \left({n \choose y} p_i^y(1-p)^{n-y}\right)^{T_i} \]</span></p>
+<p>where <span class="math inline">\(f_{norm.}\)</span> is a normalization coefficient to be found.</p>
+<p>Re-arranging the powers we can re-write the equation as:</p>
+<p><span class="math display">\[ P(y | p_1 ... p_k, T_1 ..T_k) = f_{norm.}(n, p_1.. p_n, T_1 ... T_n) {n \choose y}  \left( \prod_{i=1}^k p_i^{T_i} \right)^y \left(\prod_{i=1}^k (1-p_i)^{T_i}\right)^{n - y} \]</span></p>
+<p>Which suddenly resembles the standard binomial process. Using the binomial theorem we know that:</p>
+<p><span class="math display">\[\sum_{y=0}^n {n \choose y}  \left( \prod_{i=1}^k p_i^{T_i} \right)^y \left(\prod_{i=1}^k (1-p_i)^{T_i}\right)^{n - y} = (\prod_{i=1}^k p_i^{T_i} + \prod_{i=1}^k (1-p_i)^{T_i})^n  \]</span></p>
+<p>and hence we have the normalization term:</p>
+<p><span class="math display">\[f_{norm.}(n, p_1.. p_n, T_1 ... T_n) = (\prod_{i=1}^k p_i^{T_i} + \prod_{i=1}^k (1-p_i)^{T_i})^{-n}\]</span></p>
+<p>And our original expression for <span class="math inline">\(P(y)\)</span> can be rewritten as:</p>
+<p><span class="math display">\[ P(y | p_1 ... p_k, T_1 ..T_k) = {n \choose y}   \frac{\left( \prod_{i=1}^k p_i^{T_i} \right)^y \left(\prod_{i=1}^k (1-p_i)^{T_i}\right)^{n - y}}{(\prod_{i=1}^k p_i^{T_i} + \prod_{i=1}^k (1-p_i)^{T_i})^{n}}\]</span></p>
+<p>From here we can re-write in terms of <span class="math inline">\(p_{pooled}\)</span> where:</p>
+<p><span class="math display">\[p_{pooled} = \frac{\prod_{i=1}^k p_i^{T_i} }{\prod_{i=1}^k p_i^{T_i} + \prod_{i=1}^k (1-p_i)^{T_i}}  \]</span></p>
+<p><span class="math display">\[(1 - p_{pooled}) = \frac{\prod_{i=1}^k (1 - p_i)^{T_i} }{\prod_{i=1}^k p_i^{T_i} + \prod_{i=1}^k (1-p_i)^{T_i}}\]</span></p>
+<p><span class="math display">\[ P(y| p_{pooled}) = {n \choose y} p_{pooled}^y (1- p_{pooled})^{n - y} \]</span></p>
+<p>now - if we use the canonical link function (such that <span class="math inline">\(\theta = xB\)</span>) we have:</p>
+<p><span class="math display">\[\theta_{pooled} = log\left(\frac{p_{pooled}}{1 - p_{pooled}}\right) = log\left(\frac{\prod_{i=1}^k p_i^{T_i} }{\prod_{i=1}^k ( 1- p_i)^{T_i} }\right) = log\left( \prod_{i=1}^k \left( \frac{p_i}{1-p_i}\right)^{T_i} \right) = \sum_{i=1}^k T_i \theta_i = \sum_{i=1}^k T_i x B_i  \]</span></p>
+<p>From here the standard rules of GLMs can be applied, with <span class="math inline">\(\mu = b&#39;(\theta_{pooled}).\)</span></p>
+</div>
+<div id="poisson-derivation" class="section level2">
+<h2>Poisson derivation</h2>
+<p>For the Poisson distribution the mixed probability mass function is:</p>
+<p><span class="math display">\[ P(y |\lambda_1 ... \lambda_k, T_1 ..T_k) = f_{norm.}(n, \lambda_1 ... \lambda_k) \prod_{i=1}^k \left(\frac{\lambda_i^y}{y!}\right)^{T_i} \]</span></p>
+<p>where <span class="math inline">\(f\)</span> is again the normalization function. Following the same approach as above, we can re-arrange the powers:</p>
+<p><span class="math display">\[ P(y |\lambda_1 ... \lambda_k, T_1 ..T_k) = f_{norm.}(n,\lambda_1 ... \lambda_k)  \frac{\left( \prod_{i=1}^k \lambda_i^{T_i} \right)^y }{y!} \]</span></p>
+<p>which follows the same form as the typical Poisson dist. with a value of:</p>
+<p><span class="math display">\[ \lambda_{pooled} = \prod_{i=1}^k \lambda_i^{T_i}  \]</span></p>
+<p><span class="math display">\[ P(y | \lambda_1 ... \lambda_k, T_1 ..T_k) = \frac{e^{-\lambda_{pooled}} \lambda_{pooled}}{y!} \]</span></p>
+<p>Now, we can again apply the canonical link function, <span class="math inline">\(\theta_i = log(\lambda_i)\)</span> and <span class="math inline">\(\lambda_i = e^{\theta_i}\)</span> with <span class="math inline">\(\theta_i = xB_i\)</span>:</p>
+<p><span class="math display">\[\theta_{pooled} = \log(\lambda_{pooled}) = \log \left(\prod_{i=1}^k \lambda_i^{T_i} \right) = \sum_{i=1}^k T_i \log(\lambda_i) =\sum_{i=1}^k T_i x B_i  \]</span></p>
+</div>
+<div id="discussion" class="section level2">
+<h2>Discussion</h2>
+<p>By using the canonical link both the Poisson and Binomial distribution result in the same link between <span class="math inline">\(\theta_{pooled}\)</span> and the EM_GLM parameters <span class="math inline">\(B_i\)</span>.</p>
+<p>With this proof, we can then assume that the standard GLM results from <span class="math inline">\(b(\theta)\)</span> will hold, simplifying prediction and residuals.</p>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

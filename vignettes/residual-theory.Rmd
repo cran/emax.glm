@@ -1,0 +1,83 @@
+---
+title: "Residual Theory"
+author: "Robert M. Cook"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Residual Theory}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8,
+  fig.height = 8*0.62
+)
+```
+
+The 'residuals.em.glm' method returns two types of residuals, the *deviance* and *pearson*.  The residuals are defined using standard GLM theory where the log-likelihood of an observation is expressed in the form:
+
+$$ l(y_i) = \frac{w_i(y_i\theta_i - b(\theta_i))}{\phi}  + c(y_i, \phi) $$
+
+Where $y_i$ is the observed value,  $w_i$ are the observed weights, $\phi$ is the dispersion parameter (currently assumed to be 1 for the models implemented), and $b$ and $c$ are distribution-dependent functions.  The function $b$ is related to $y_i$ such that $\mu_i = E(y_i) = b'(\theta_i)$.
+
+
+The deviance residuals, $d_i$, are defined as:
+
+$$d_i = sign(y_i - \mu_i) \sqrt{2 \left( l_{sat.}(y_i) - l_{model}(y_i) \right) }$$
+
+where $l_{sat.}$ is the 'saturated model' such that each value of $\mu_i = y_i$ and $l_{model}$ is the  likelihood of $y_i$ for the predicted value of $\mu_i$.  We will not go into the relationship between $\mu_i$, the covariates $X$, and the fit parameters $B$ here. 
+
+The deviance residuals are implemented as:
+
+``` {r, eval = FALSE}
+rho <- x %*% B
+mu <- family()$linkinv(rho)
+
+# Poisson deviance
+abs(y - w * mu) * sqrt(2 * (dpois(y, y, log = TRUE) - dpois(y, w * mu, log = TRUE)))
+
+# Binomial deviance
+abs(y - w * mu) * sqrt(2 * (dbinom(y, w, y / w, log = TRUE) - dbinom(y, w, mu, log = TRUE)))
+```
+
+where `r 'x'` is the input data, `r 'B'` is the optimal parameters, `r 'w'` is the weights, `r 'y'` is the target values  and `r 'family'` is (currently) either `r 'poisson'` or `r 'binom'`.
+
+The Pearson's residuals, $r_i$, when the weights all equal 1 are defined as:
+
+$$ r_i = \frac{y_i - \mu_i}{\sqrt{Var(y_i)}} = \frac{y_i - \mu_i}{\sqrt{V(\mu_i)}}$$
+
+where $V(\mu)$ is the variance function of the GLM and depends on the underlying distribution.
+
+Where the models are weighted (either if we look at rate of successes for a binomial process or have an exposure for a Poisson process) the Pearson residuals become:
+
+$$ r_i = \frac{y_i / w_i -\mu_i}{\sqrt{Var(y_i)}} = \frac{y_i/w_i - \mu_i}{\sqrt{V(\mu_i)/w_i}}  = \frac{y - w_i \mu_i}{\sqrt{w_i V(\mu_i)}}$$
+
+The relationship between $Var(y_i)$ and $V(\mu_i)$ arises from taking the differentials of $l$ wrt. $\theta$.  The first differential gives rise to the *score vector* $u$:
+
+$$ \frac{d l}{d \theta} = u = \frac{w_i (y_i - b'(\theta))}{\phi}$$
+
+and second differential:
+
+$$ \frac{d^2 l}{d \theta^2} = -\frac{w_i b''(\theta)}{\phi} $$
+
+Combining these two results with Bartlett's second identity:
+
+$$ Var_\theta\left[ \frac{d l}{d\theta} \right] = - E_\theta\left[ \frac{d^2 l}{d\theta^2} \right] $$
+
+We can deduce that:
+
+$$ Var_\theta\left[ \frac{w_i (y_i - b'(\theta))}{\phi} \right] = - E_\theta\left[ -\frac{w_i b''(\theta)}{\phi} \right] $$
+
+$$ \frac{w_i^2 Var(y_i) }{\phi^2}  = \frac{w_i b''(\theta)}{\phi} $$
+
+$$ Var(y_i) = \frac{\phi b''(\theta)}{w_i} = \frac{\phi V(\theta)}{w_i} $$
+
+In the *stats* package each distribution family carries its own variance function defined relative to $\mu$ not $\theta$, $V(\mu) = b''(b'^{-1}(\mu))$.     Hence we use:
+
+$$ Var(y_i) = \frac{\phi V(\mu)} {w_i} $$
+
+
